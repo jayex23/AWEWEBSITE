@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Technician Portal</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e2e2e2;
+    --border-focus: #1a1a1a;
+    --text: #1a1a1a;
+    --text-muted: #6b6b6b;
+    --accent: #1a1a1a;
+    --accent-text: #ffffff;
+    --danger: #c0392b;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --surface: #1a1a1a; --border: #2e2e2e; --border-focus: #f2f2f2;
+      --text: #f2f2f2; --text-muted: #9a9a9a; --accent: #f2f2f2; --accent-text: #121212;
+      --danger: #e57368;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212; --surface: #1a1a1a; --border: #2e2e2e; --border-focus: #f2f2f2;
+    --text: #f2f2f2; --text-muted: #9a9a9a; --accent: #f2f2f2; --accent-text: #121212;
+    --danger: #e57368;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    padding: 24px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; }
+  .topbar h1 { font-size: 18px; margin: 0; }
+  .topbar .sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .icon-btn {
+    font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding: 0 14px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap;
+  }
+  .icon-btn:hover { opacity: 0.85; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px; }
+  .card h2 { font-size: 14px; margin: 0 0 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  form { display: flex; flex-direction: column; gap: 14px; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+  label { font-size: 13px; font-weight: 500; }
+  input, select, textarea {
+    font: inherit; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--border-focus); }
+  textarea { resize: vertical; min-height: 90px; }
+
+  button.primary {
+    font: inherit; font-weight: 600; padding: 10px 16px; border: none; border-radius: 8px;
+    background: var(--accent); color: var(--accent-text); cursor: pointer; align-self: flex-start;
+  }
+  button.primary:hover { opacity: 0.88; }
+
+  .placeholder-note {
+    font-size: 12px; color: var(--text-muted); background: var(--bg);
+    border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 12px;
+  }
+
+  .photo-row { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+  .photo-row .icon-btn { height: 32px; padding: 0 12px; font-size: 12px; }
+  .photo-hint { font-size: 12px; color: var(--text-muted); }
+  .photo-preview { margin-top: 10px; max-width: 100%; max-height: 220px; border-radius: 8px; border: 1px solid var(--border); display: block; }
+
+  /* Settings panel */
+  .settings-panel { display: none; }
+  .settings-panel.open { display: block; }
+  .manage-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .manage-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+  .remove-btn { font: inherit; font-size: 12px; padding: 3px 9px; border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--danger); cursor: pointer; }
+  .add-row { display: flex; gap: 8px; }
+  .add-row input { flex: 1; }
+
+  /* Report preview, shown after submit — this is what gets printed/saved as PDF */
+  .report-preview { display: none; }
+  .report-preview.visible { display: block; }
+  .report-row { font-size: 14px; margin-bottom: 8px; }
+  .report-row .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); display: block; margin-bottom: 2px; }
+  .report-date { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+  /* Print styles: only the report preview prints */
+  @media print {
+    body { background: #fff; color: #000; padding: 0; }
+    .topbar-actions, #ticket-form, .settings-panel, .placeholder-note, .card:has(#ticket-form) { display: none !important; }
+    .report-preview { display: block !important; }
+    .card { border: none; box-shadow: none; padding: 0; margin-bottom: 20px; }
+    .wrap { max-width: 100%; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>AWE TECHNICIAN REPORT PORTAL</h1>
+   
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="settings-btn" title="Settings">Settings</button>
+        <button class="icon-btn" id="print-btn" title="Print">Print</button>
+        <button class="icon-btn" id="pdf-btn" title="Save as PDF">PDF</button>
+      </div>
+    </div>
+
+    
+    <div class="card settings-panel" id="settings-panel">
+      <h2>Settings</h2>
+
+      <div class="form-row">
+        <div class="field">
+          <label>Branches</label>
+          <div class="manage-list" id="branch-list"></div>
+          <div class="add-row">
+            <input type="text" id="new-branch" placeholder="Add branch name">
+            <button type="button" class="secondary" id="add-branch-btn">Add</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Areas / Equipment Types</label>
+          <div class="manage-list" id="area-list"></div>
+          <div class="add-row">
+            <input type="text" id="new-area" placeholder="Add area name">
+            <button type="button" class="secondary" id="add-area-btn">Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="placeholder-note">Changes here are local for now — wire to POST/DELETE /api/branches and /api/areas so they persist and sync with the admin panel.</div>
+    </div>
+
+    <!-- REPORT FORM -->
+    <div class="card">
+      <h2>Report an Issue</h2>
+      <form id="ticket-form">
+        <div class="form-row">
+          <div class="field">
+            <label for="tech-name">Technician name</label>
+            <input type="text" id="tech-name" placeholder="Your name">
+          </div>
+          <div class="field">
+            <label for="branch">Branch</label>
+            <select id="branch"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="area">Area / Equipment</label>
+            <select id="area"></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="title">Issue title</label>
+          <input type="text" id="title" placeholder="Short summary, e.g. 'Lane 4 pinsetter jammed'">
+        </div>
+
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="What's wrong, when it started, anything already tried..."></textarea>
+          <div class="photo-row">
+            <button type="button" class="icon-btn" id="add-photo-btn" title="Add photo">Add Photo</button>
+            <span class="photo-hint" id="photo-hint">Optional</span>
+            <input type="file" id="photo-input" accept="image/*" hidden>
+          </div>
+          <img id="photo-preview" class="photo-preview" hidden>
+        </div>
+
+        <button type="submit" class="primary">Submit — Generate PDF Report</button>
+      </form>
+      <div class="placeholder-note">Submitting opens the print dialog so you can save the report as a PDF to send to the head technician.</div>
+    </div>
+
+    <!-- REPORT PREVIEW (hidden until submit; this is what prints / saves as PDF) -->
+    <div class="card report-preview" id="report-preview">
+      <h2>Issue Report</h2>
+      <div class="report-date" id="report-date"></div>
+      <div class="report-row"><span class="label">Technician</span><span id="preview-tech"></span></div>
+      <div class="report-row"><span class="label">Branch</span><span id="preview-branch"></span></div>
+      <div class="report-row"><span class="label">Area / Equipment</span><span id="preview-area"></span></div>
+      <div class="report-row"><span class="label">Issue</span><span id="preview-title"></span></div>
+      <div class="report-row"><span class="label">Description</span><span id="preview-description"></span></div>
+      <div class="report-row" id="preview-photo-row" hidden>
+        <span class="label">Photo</span>
+        <img id="preview-photo" class="photo-preview">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Local branch/area state (layout stage — resets on reload) ----------
+    let branches = ['Main Branch', 'Mall Branch', 'Downtown Branch'];
+    let areas = ['Bowling', 'Billiards', 'VR Zone', 'Air Hockey'];
+
+    function renderManageList(containerId, items, onRemove) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = items.map((name, i) =>
+        `<div class="manage-row"><span>${escapeHtml(name)}</span><button class="remove-btn" data-index="${i}">Remove</button></div>`
+      ).join('');
+      el.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => onRemove(parseInt(btn.dataset.index)));
+      });
+    }
+
+    function renderSelect(selectId, items) {
+      const el = document.getElementById(selectId);
+      el.innerHTML = '<option>— select —</option>' + items.map(name => `<option>${escapeHtml(name)}</option>`).join('');
+    }
+
+    function refreshAll() {
+      renderManageList('branch-list', branches, (i) => { branches.splice(i, 1); refreshAll(); });
+      renderManageList('area-list', areas, (i) => { areas.splice(i, 1); refreshAll(); });
+      renderSelect('branch', branches);
+      renderSelect('area', areas);
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    document.getElementById('add-branch-btn').addEventListener('click', () => {
+      const input = document.getElementById('new-branch');
+      const val = input.value.trim();
+      if (val) { branches.push(val); input.value = ''; refreshAll(); }
+    });
+    document.getElementById('add-area-btn').addEventListener('click', () => {
+      const input = document.getElementById('new-area');
+      const val = input.value.trim();
+      if (val) { areas.push(val); input.value = ''; refreshAll(); }
+    });
+
+    refreshAll();
+
+    // ---------- Photo attach ----------
+    let photoDataUrl = null;
+
+    document.getElementById('add-photo-btn').addEventListener('click', () => {
+      document.getElementById('photo-input').click();
+    });
+
+    document.getElementById('photo-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        photoDataUrl = reader.result;
+        const preview = document.getElementById('photo-preview');
+        preview.src = photoDataUrl;
+        preview.hidden = false;
+        document.getElementById('photo-hint').textContent = file.name;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // ---------- Settings toggle ----------
+    document.getElementById('settings-btn').addEventListener('click', () => {
+      document.getElementById('settings-panel').classList.toggle('open');
+    });
+
+    // ---------- Build and download an actual PDF file (no print dialog, no printer involved) ----------
+    let lastReport = null; // keeps the last submitted data so the toolbar buttons can re-download it
+
+    function buildAndDownloadPdf(reportData) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const marginX = 48;
+      let y = 56;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('Technical Issue Report', marginX, y);
+      y += 20;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(120);
+      doc.text(reportData.date, marginX, y);
+      doc.setTextColor(0);
+      y += 28;
+
+      function row(label, value) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(110);
+        doc.text(label.toUpperCase(), marginX, y);
+        y += 14;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        const lines = doc.splitTextToSize(value || '—', 500);
+        doc.text(lines, marginX, y);
+        y += (lines.length * 14) + 14;
+      }
+
+      row('Technician', reportData.tech);
+      row('Branch', reportData.branch);
+      row('Area / Equipment', reportData.area);
+      row('Issue', reportData.title);
+      row('Description', reportData.description);
+
+      if (reportData.photoDataUrl) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(110);
+        doc.text('PHOTO', marginX, y);
+        y += 14;
+        try {
+          const imgWidth = 300;
+          const imgHeight = 200;
+          // jsPDF needs the image format ('PNG' or 'JPEG') pulled from the data URL's mime type.
+          const mimeMatch = reportData.photoDataUrl.match(/^data:image\/(png|jpeg|jpg);/i);
+          const format = mimeMatch ? mimeMatch[1].toUpperCase().replace('JPG', 'JPEG') : 'JPEG';
+          doc.addImage(reportData.photoDataUrl, format, marginX, y, imgWidth, imgHeight, undefined, 'FAST');
+          y += imgHeight + 14;
+        } catch (err) {
+          console.error('PDF image embed failed:', err);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          doc.text('(photo could not be embedded)', marginX, y);
+          y += 20;
+        }
+      }
+
+      const safeTitle = (reportData.title || 'issue-report').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      doc.save(`${safeTitle}.pdf`);
+    }
+
+    // ---------- Submit: build the PDF immediately and download it ----------
+    document.getElementById('ticket-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      lastReport = {
+        date: new Date().toLocaleString(),
+        tech: document.getElementById('tech-name').value,
+        branch: document.getElementById('branch').value,
+        area: document.getElementById('area').value,
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        photoDataUrl: photoDataUrl
+      };
+
+      buildAndDownloadPdf(lastReport);
+    });
+
+    // ---------- Toolbar buttons ----------
+    // Print icon: actual physical print of the last report (opens the normal print dialog).
+    document.getElementById('print-btn').addEventListener('click', () => {
+      if (!lastReport) { alert('Submit a report first.'); return; }
+      document.getElementById('preview-tech').textContent = lastReport.tech || '—';
+      document.getElementById('preview-branch').textContent = lastReport.branch || '—';
+      document.getElementById('preview-area').textContent = lastReport.area || '—';
+      document.getElementById('preview-title').textContent = lastReport.title || '—';
+      document.getElementById('preview-description').textContent = lastReport.description || '—';
+      document.getElementById('report-date').textContent = lastReport.date;
+      document.getElementById('report-preview').classList.add('visible');
+      window.print();
+    });
+
+    // PDF icon: re-download the last report as a PDF file.
+    document.getElementById('pdf-btn').addEventListener('click', () => {
+      if (!lastReport) { alert('Submit a report first.'); return; }
+      buildAndDownloadPdf(lastReport);
+    });
+  </script>
+
+  <script>
+    // Anti-inspection deterrent: blocks standard inspection shortcuts.
+    // Note: no browser script can make a page truly "uninspectable".
+    (() => {
+      const block = (event) => {
+        const key = event.key ? event.key.toLowerCase() : '';
+        const ctrl = event.ctrlKey || event.metaKey;
+        const isInspectShortcut =
+          event.key === 'F12' ||
+          (ctrl && (key === 'i' || key === 'u' || key === 's' || key === 'c')) ||
+          (event.shiftKey && ctrl && key === 'i');
+
+        if (isInspectShortcut) {
+          event.preventDefault();
+          event.stopPropagation();
+          return false;
+        }
+      };
+
+      document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
+      document.addEventListener('keydown', block, { passive: false });
+      document.addEventListener('dragstart', (e) => e.preventDefault());
+      document.addEventListener('selectstart', (e) => e.preventDefault());
+
+      const css = document.createElement('style');
+      css.textContent = '* { user-select: none !important; }';
+      document.head.appendChild(css);
+    })();
+  </script>
+</body>
+</html>
