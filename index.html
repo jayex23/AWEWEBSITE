@@ -1,415 +1,349 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Technician Portal</title>
-<style>
-  :root {
-    --bg: #fafafa;
-    --surface: #ffffff;
-    --border: #e2e2e2;
-    --border-focus: #1a1a1a;
-    --text: #1a1a1a;
-    --text-muted: #6b6b6b;
-    --accent: #1a1a1a;
-    --accent-text: #ffffff;
-    --danger: #c0392b;
-    --radius: 10px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #121212; --surface: #1a1a1a; --border: #2e2e2e; --border-focus: #f2f2f2;
-      --text: #f2f2f2; --text-muted: #9a9a9a; --accent: #f2f2f2; --accent-text: #121212;
-      --danger: #e57368;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #121212; --surface: #1a1a1a; --border: #2e2e2e; --border-focus: #f2f2f2;
-    --text: #f2f2f2; --text-muted: #9a9a9a; --accent: #f2f2f2; --accent-text: #121212;
-    --danger: #e57368;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    padding: 24px;
-  }
-  .wrap { max-width: 640px; margin: 0 auto; }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; }
-  .topbar h1 { font-size: 18px; margin: 0; }
-  .topbar .sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-  .topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-  .icon-btn {
-    font: inherit; font-size: 13px; font-weight: 600; height: 36px; padding: 0 14px; display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap;
-  }
-  .icon-btn:hover { opacity: 0.85; }
-
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px; }
-  .card h2 { font-size: 14px; margin: 0 0 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-
-  form { display: flex; flex-direction: column; gap: 14px; }
-  .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
-  label { font-size: 13px; font-weight: 500; }
-  input, select, textarea {
-    font: inherit; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
-    background: var(--bg); color: var(--text); outline: none;
-  }
-  input:focus, select:focus, textarea:focus { border-color: var(--border-focus); }
-  textarea { resize: vertical; min-height: 90px; }
-
-  button.primary {
-    font: inherit; font-weight: 600; padding: 10px 16px; border: none; border-radius: 8px;
-    background: var(--accent); color: var(--accent-text); cursor: pointer; align-self: flex-start;
-  }
-  button.primary:hover { opacity: 0.88; }
-
-  .placeholder-note {
-    font-size: 12px; color: var(--text-muted); background: var(--bg);
-    border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 12px;
-  }
-
-  .photo-row { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
-  .photo-row .icon-btn { height: 32px; padding: 0 12px; font-size: 12px; }
-  .photo-hint { font-size: 12px; color: var(--text-muted); }
-  .photo-preview { margin-top: 10px; max-width: 100%; max-height: 220px; border-radius: 8px; border: 1px solid var(--border); display: block; }
-
-  /* Settings panel */
-  .settings-panel { display: none; }
-  .settings-panel.open { display: block; }
-  .manage-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-  .manage-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
-  .remove-btn { font: inherit; font-size: 12px; padding: 3px 9px; border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--danger); cursor: pointer; }
-  .add-row { display: flex; gap: 8px; }
-  .add-row input { flex: 1; }
-
-  /* Report preview, shown after submit — this is what gets printed/saved as PDF */
-  .report-preview { display: none; }
-  .report-preview.visible { display: block; }
-  .report-row { font-size: 14px; margin-bottom: 8px; }
-  .report-row .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); display: block; margin-bottom: 2px; }
-  .report-date { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
-
-  /* Print styles: only the report preview prints */
-  @media print {
-    body { background: #fff; color: #000; padding: 0; }
-    .topbar-actions, #ticket-form, .settings-panel, .placeholder-note, .card:has(#ticket-form) { display: none !important; }
-    .report-preview { display: block !important; }
-    .card { border: none; box-shadow: none; padding: 0; margin-bottom: 20px; }
-    .wrap { max-width: 100%; }
-  }
-</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BOLTS</title>
+  <link rel="icon" type="image/png" href="photos/logobolts1.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;600&family=Sora:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div>
-        <h1>AWE TECHNICIAN REPORT PORTAL</h1>
-   
-      </div>
-      <div class="topbar-actions">
-        <button class="icon-btn" id="settings-btn" title="Settings">Settings</button>
-        <button class="icon-btn" id="print-btn" title="Print">Print</button>
-        <button class="icon-btn" id="pdf-btn" title="Save as PDF">PDF</button>
-      </div>
-    </div>
 
+  <!-- ============ NAVBAR ============ -->
+  <header class="navbar">
+    <nav class="nav-inner" aria-label="Main">
+      <a href="#home" class="logo" aria-label="Bolts shockingly fun">
+        <img src="photos/logobolts1.png" alt="BOLTS — Shockingly Fun">
+      </a>
+
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
+
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#home" class="active">Home</a></li>
+
+        <!-- Optional dropdown -->
+        <li class="has-dropdown">
+          <a href="#services">Park Attractions</a>
+          <ul class="dropdown" aria-label="Park attractions list">
+            <li><button type="button" class="dropdown-link active" data-target="bowling">Bowling</button></li>
+            <li><button type="button" class="dropdown-link" data-target="billiards">Billiards</button></li>
+            <li><button type="button" class="dropdown-link" data-target="games">Super Carnival</button></li>
+            <li><button type="button" class="dropdown-link" data-target="shooting">Shooting</button></li>
+            <li><button type="button" class="dropdown-link" data-target="archery">Digital Archery</button></li>
+            <li><button type="button" class="dropdown-link" data-target="darts">Digital Darts</button></li>
+            <li><button type="button" class="dropdown-link" data-target="music">Live Music</button></li>
+          </ul>
+        </li>
+
+        <li><a href="#restaurant">Restaurant</a></li>
+        <li><a href="#promotion">Promotion</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#location">Location</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ============ PAGE CONTENT ============ -->
+  <main>
+    <section class="hero hero-cover" id="home">
+      <div class="hero-cover-bg" aria-hidden="true">
+        <img src="photos/DSC03157.jpg" alt="" fetchpriority="high">
+      </div>
+      <div class="container">
+        <div class="hero-cover-copy">
+          <img class="hero-logo" src="photos/logobolts1.png" alt="BOLTS — Shockingly Fun">
+          <p class="hero-cover-subtitle">SOCIAL ENTERTAINMENT CLUB</p>
+          <p class="hero-cover-tagline">The future of social entertainment.</p>
+          <p class="hero-description">A new premium destination for competitive play, great food, and unforgettable nights out.</p>
+          <div class="hero-actions">
+            <a href="#services" class="btn">Explore attractions <span aria-hidden="true">→</span></a>
+            <a href="#location" class="hero-secondary">Find us <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="services">
+      <div class="container">
+        <h2>THE ATTRACTIONS</h2>
+        <p class="attractions-intro">A full lineup of competitive, social attractions under one roof—each designed for group play and instant scoring.</p>
+
+        <div class="attraction-panels">
+          <div class="panel active" id="bowling">
+            <div class="panel-inner">
+              <img class="panel-image" src="photos/DSC03140.jpg" alt="Bowling alley" />
+              <div class="panel-copy">
+                <h3>Bowling</h3>
+                <p>Strike up an evening of competition with glowing lanes, upbeat music, and a social atmosphere for groups, dates, and celebrations.</p>
+                <p class="caption"></p>
+              </div>
+            </div>
+            <div class="panel-nav">
+              <button class="arrow-btn" type="button" data-direction="prev" aria-label="Previous attraction">←</button>
+              <button class="arrow-btn" type="button" data-direction="next" aria-label="Next attraction">→</button>
+            </div>
+          </div>
+          <div class="panel" id="billiards">
+            <div class="panel-inner">
+              <img class="panel-image" src="photos/DSC03157.jpg" alt="Billiards tables" />
+              <div class="panel-copy">
+                <h3>Billiards</h3>
+                <p>Take your shot at a relaxed, skill-based game with premium tables and a modern lounge setting that keeps the energy high.</p>
+                <p class="caption"></p>
+              </div>
+            </div>
+            <div class="panel-nav">
+              <button class="arrow-btn" type="button" data-direction="prev" aria-label="Previous attraction">←</button>
+              <button class="arrow-btn" type="button" data-direction="next" aria-label="Next attraction">→</button>
+            </div>
+          </div>
+          <div class="panel" id="games">
+            <div class="panel-inner">
+              <img class="panel-image" src="photos2/carnival.jpg" alt="Carnival games" />
+              <div class="panel-copy">
+                <h3>Super Carnival</h3>
+                <p>Step into a classic arcade atmosphere with fun challenges, prize wins, and friendly competition across every age group.</p>
+                <p class="caption"></p>
+              </div>
+            </div>
+            <div class="panel-nav">
+              <button class="arrow-btn" type="button" data-direction="prev" aria-label="Previous attraction">←</button>
+              <button class="arrow-btn" type="button" data-direction="next" aria-label="Next attraction">→</button>
+            </div>
+          </div>
+          <div class="panel" id="shooting">
+            <div class="panel-inner">
+              <img class="panel-image" src="photos2/shooting.jpg" alt="Interactive shooting attraction" />
+              <div class="panel-copy">
+                <h3>Shooting</h3>
+                <p>Take aim in an immersive shooting challenge designed for friendly competition, quick rounds, and memorable group play.</p>
+                <p class="caption"></p>
+              </div>
+            </div>
+            <div class="panel-nav">
+              <button class="arrow-btn" type="button" data-direction="prev" aria-label="Previous attraction">←</button>
+              <button class="arrow-btn" type="button" data-direction="next" aria-label="Next attraction">→</button>
+            </div>
+          </div>
+          <div class="panel" id="archery">
+            <div class="panel-inner">
+              <img class="panel-image" src="photos2/archery.jpg" alt="Digital archery experience" />
+              <div class="panel-copy">
+                <h3>Digital Archery</h3>
+                <p>Test your aim with a modern archery game that blends classic target practice with interactive scoring and a competitive social twist.</p>
+                <p class="caption"></p>
+              </div>
+            </div>
+            <div class="panel-nav">
+              <button class="arrow-btn" type="button" data-direction="prev" aria-label="Previous attraction">←</button>
+              <button class="arrow-btn" type="button" data-direction="next" aria-label="Next attraction">→</button>
+            </div>
+          </div>
+          <div class="panel" id="darts">
+            <div class="panel-inner">
+              <img class="panel-image" src="photos2/darts.jpg" alt="Digital darts game" />
+              <div class="panel-copy">
+                <h3>Digital Darts</h3>
+                <p>Challenge your friends to a high-energy darts match with digital scoring, interactive game modes, and easy-to-follow play.</p>
+                <p class="caption"></p>
+              </div>
+            </div>
+            <div class="panel-nav">
+              <button class="arrow-btn" type="button" data-direction="prev" aria-label="Previous attraction">←</button>
+              <button class="arrow-btn" type="button" data-direction="next" aria-label="Next attraction">→</button>
+            </div>
+          </div>
+          <div class="panel" id="music">
+            <div class="panel-inner">
+              <img class="panel-image" src="photos2/music.jpg" alt="Live music at BOLTS" />
+              <div class="panel-copy">
+                <h3>Live Music</h3>
+                <p>Enjoy live performances and an upbeat atmosphere that brings friends together between games and throughout the evening.</p>
+                <p class="caption"></p>
+              </div>
+            </div>
+            <div class="panel-nav">
+              <button class="arrow-btn" type="button" data-direction="prev" aria-label="Previous attraction">←</button>
+              <button class="arrow-btn" type="button" data-direction="next" aria-label="Next attraction">→</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="alt" id="restaurant">
+      <div class="container">
+        <h2>Restaurant</h2>
+        <p>Take a break from the fun and enjoy great food and refreshing drinks at Bolts.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Drinks And Coffee</h3>
+            <p>Refresh yourself with our selection of beverages.</p>
+            <div class="restaurant-carousel photo-carousel" aria-label="Drink photo gallery">
+              <figure class="restaurant-slide active"><img src="photos/BOLTS Menu iPad Screen 5 (3).jpg" alt="Replace with drink photo 1" loading="lazy"><figcaption></figcaption></figure>
+             
+              <div class="restaurant-carousel-controls">
+                <button class="restaurant-arrow" type="button" data-direction="prev" aria-label="Previous snack photo">←</button>
+                <span class="restaurant-slide-count" aria-live="polite">1 / 5</span>
+                <button class="restaurant-arrow" type="button" data-direction="next" aria-label="Next snack photo">→</button>
+              </div>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Meals</h3>
+            <p>Enjoy a satisfying meal with friends and family.</p>
+            <div class="restaurant-carousel photo-carousel" aria-label="Meal photo gallery">
+              <figure class="restaurant-slide active"><img src="photos/BOLTS Menu iPad Screen 1 (1).jpg" alt="Meal menu photo 1" loading="lazy"><figcaption></figcaption></figure>
+              <figure class="restaurant-slide"><img src="photos/BOLTS Menu iPad Screen 2 (1).jpg" alt="Meal menu photo 2" loading="lazy"><figcaption></figcaption></figure>
+              <figure class="restaurant-slide"><img src="photos/BOLTS Menu iPad Screen 3 (1).jpg" alt="Meal menu photo 3" loading="lazy"><figcaption></figcaption></figure>
+             
+              <div class="restaurant-carousel-controls">
+                <button class="restaurant-arrow" type="button" data-direction="prev" aria-label="Previous meal photo">←</button>
+                <span class="restaurant-slide-count" aria-live="polite">1 / 3</span>
+                <button class="restaurant-arrow" type="button" data-direction="next" aria-label="Next meal photo">→</button>
+              </div>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Pizzas</h3>
+            <p>Choose a refreshing drink and relax before your next adventure.</p>
+            <div class="restaurant-carousel photo-carousel" aria-label="Pizza photo gallery">
+              <figure class="restaurant-slide active"><img src="photos/BOLTS Menu iPad Screen 4 (1).jpg" alt="Replace with pizza photo 1" loading="lazy"><figcaption></figcaption></figure>
+             
+              <div class="restaurant-carousel-controls">
+                <button class="restaurant-arrow" type="button" data-direction="prev" aria-label="Previous pizza photo">←</button>
+                <span class="restaurant-slide-count" aria-live="polite">1 / 5</span>
+                <button class="restaurant-arrow" type="button" data-direction="next" aria-label="Next pizza photo">→</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="alt" id="promotion">
+      <div class="container">
+        <h2>Promotions</h2>
+        <p>Discover the latest offers and special events at Bolts. </p>
+        <div class="restaurant-carousel photo-carousel promotion-carousel" aria-label="Promotion photo gallery">
+          <figure class="restaurant-slide active"><img src="photos/offer arabic.jpg" alt="Promotion photo 1 — replace with your current offer" loading="lazy"><figcaption></figcaption></figure>
+          <figure class="restaurant-slide"><img src="photos/offer english.jpg" alt="Promotion photo 2 — replace with your current offer" loading="lazy"><figcaption></figcaption></figure>
+        
+          <div class="restaurant-carousel-controls">
+            <button class="restaurant-arrow" type="button" data-direction="prev" aria-label="Previous promotion">←</button>
+            <span class="restaurant-slide-count" aria-live="polite">1 / 5</span>
+            <button class="restaurant-arrow" type="button" data-direction="next" aria-label="Next promotion">→</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="welcome-section" id="about">
+      <div class="welcome-bg" aria-hidden="true">
+        <img src="photos2/bowlingbg.jpg" alt="" loading="lazy">
+      </div>
+      <div class="container">
+        <p class="welcome-eyebrow">AWE’S NEW FRONTIER</p>
+        <h2>WELCOME TO BOLTS</h2>
+        <span class="welcome-pill">SOCIAL ENTERTAINMENT CLUB</span>
+        <p class="welcome-lead">Building on 20 years of entertainment expertise and a deep understanding of the Saudi market, AWE identified a gap in the premium social entertainment space. BOLTS is a bold new concept for adults and young professionals where competitive socializing, elevated hospitality, and cutting-edge technology converge.</p>
+
+        <div class="audience-block" aria-labelledby="audience-heading">
+          <div class="audience-heading">
+            <p class="audience-eyebrow">CAPTURING THE PREMIUM ADULT MARKET</p>
+            <h3 id="audience-heading">TARGET AUDIENCE</h3>
+            <p>Young professionals and adults seeking premium, sophisticated social experiences.</p>
+          </div>
+          <div class="audience-stats">
+            <article class="audience-stat audience-stat-orange">
+              <strong>18–35</strong>
+              <span>CORE AGE RANGE</span>
+            </article>
+            <article class="audience-stat audience-stat-amber">
+              <strong>+45%</strong>
+              <span>REPEAT VISIT RATIO</span>
+            </article>
+            <article class="audience-stat audience-stat-cyan">
+              <strong>350–550</strong>
+              <span>VISITOR CAPACITY</span>
+            </article>
+            <article class="audience-stat audience-stat-magenta">
+              <strong>1,500–2,000</strong>
+              <span>SQM VENUE SIZE</span>
+            </article>
+          </div>
+          <div class="audience-groups">
+            <article><h4>Young professionals</h4><p>After-work socializing &amp; networking</p></article>
+            <article><h4>Couples</h4><p>Date nights &amp; special occasions</p></article>
+            <article><h4>Groups of friends</h4><p>Celebrations &amp; nights out</p></article>
+            <article><h4>Corporate clients</h4><p>Team building &amp; client entertainment</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="alt" id="location">
+      <div class="container">
+        <h2>Location</h2>
+       
+
+        <div class="map-wrap">
+          <iframe
+            class="map-frame"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3213.1648240631644!2d49.56443447490279!3d27.135431650484875!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e350fce18c93043%3A0x8361ed510ebfa6e1!2sBOLTS!5e1!3m2!1sen!2ssa!4v1792996586940!5m2!1sen!2ssa"
+            width="600"
+            height="450"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            title="Google map location">
+          </iframe>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="contact">
+      <div class="container">
+        <h2>Contact</h2>
+      
+        <div class="social-links" aria-label="Social media">
+          <a class="social-link" href="#" aria-label="Email us with Gmail">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M3 7.2v10.3c0 .8.7 1.5 1.5 1.5H7V9.1L3 6.2v1Z"/><path fill="#34A853" d="M17 19h2.5c.8 0 1.5-.7 1.5-1.5V7.2l-4 2.9V19Z"/><path fill="#EA4335" d="M17 9.1 12 12.8 7 9.1 3 6.2V5.5C3 4.7 3.7 4 4.5 4h.7L12 9l6.8-5h.7c.8 0 1.5.7 1.5 1.5v.7l-4 2.9Z"/><path fill="#FBBC04" d="M7 19v-9.9l5 3.7 5-3.7V19H7Z"/></svg>
+          </a>
+          <a class="social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#25F4EE" d="M15.2 3h3.1c.2 2.2 1.4 3.8 3.7 4.5v3.2a9.2 9.2 0 0 1-3.7-1.4v6.2a6.6 6.6 0 1 1-6.6-6.6c.4 0 .8 0 1.2.1v3.4a3.3 3.3 0 1 0 2.3 3.1V3Z" transform="translate(-1.3 1)"/><path fill="#FE2C55" d="M15.2 3h3.1c.2 2.2 1.4 3.8 3.7 4.5v3.2a9.2 9.2 0 0 1-3.7-1.4v6.2a6.6 6.6 0 1 1-6.6-6.6c.4 0 .8 0 1.2.1v3.4a3.3 3.3 0 1 0 2.3 3.1V3Z" transform="translate(-.5 .5)"/><path fill="currentColor" d="M15.2 3h3.1c.2 2.2 1.4 3.8 3.7 4.5v3.2a9.2 9.2 0 0 1-3.7-1.4v6.2a6.6 6.6 0 1 1-6.6-6.6c.4 0 .8 0 1.2.1v3.4a3.3 3.3 0 1 0 2.3 3.1V3Z"/></svg>
+          </a>
+          <a class="social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a class="social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="Snapchat">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3.2c-2.2 0-3.7 1.7-3.7 4.1 0 .8.1 1.7.2 2.5-.6.4-1.3.4-2 .1-.4-.2-.8 0-.9.4-.1.3.1.6.4.8.8.4 1.6.5 2.4.2-.6 1.5-1.8 2.8-3.4 3.5-.4.2-.5.7-.2 1 .2.2.5.2.8.3.6.1 1 .4 1.2.8.2.3.5.4.9.3.8-.3 1.7-.2 2.5.2.6.3 1.2.8 1.8 1.3.6-.5 1.2-1 1.8-1.3.8-.4 1.7-.5 2.5-.2.4.1.7 0 .9-.3.2-.4.6-.7 1.2-.8.3-.1.6-.1.8-.3.3-.3.2-.8-.2-1-1.6-.7-2.8-2-3.4-3.5.8.3 1.6.2 2.4-.2.3-.2.5-.5.4-.8-.1-.4-.5-.6-.9-.4-.7.3-1.4.3-2-.1.1-.8.2-1.7.2-2.5 0-2.4-1.5-4.1-3.7-4.1Z"/></svg>
+          </a>
+          <a class="social-link" href="#" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 11.7a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.4-4.9a8.4 8.4 0 1 1 16.1-3.9Z"/><path d="M8.5 8.2c.2-.5.4-.5.7-.5h.5c.2 0 .4.1.5.4l.7 1.6c.1.2.1.4-.1.6l-.5.6c-.2.2-.2.4-.1.6.6 1 1.4 1.8 2.4 2.4.2.1.4.1.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.6.8c.3.1.4.3.4.5 0 .3-.2 1.2-.8 1.7-.5.5-1.2.7-2 .5-1.1-.3-2.5-.9-4-2.3-1.8-1.6-2.8-3.6-2.9-4.5-.1-.8.2-1.2.7-1.4Z"/></svg>
+          </a>
+        </div>
+        <p class="copyright">@Jhay Ranes </p>
+      </div>
     
-    <div class="card settings-panel" id="settings-panel">
-      <h2>Settings</h2>
+  </footer>
 
-      <div class="form-row">
-        <div class="field">
-          <label>Branches</label>
-          <div class="manage-list" id="branch-list"></div>
-          <div class="add-row">
-            <input type="text" id="new-branch" placeholder="Add branch name">
-            <button type="button" class="secondary" id="add-branch-btn">Add</button>
-          </div>
-        </div>
-        <div class="field">
-          <label>Areas / Equipment Types</label>
-          <div class="manage-list" id="area-list"></div>
-          <div class="add-row">
-            <input type="text" id="new-area" placeholder="Add area name">
-            <button type="button" class="secondary" id="add-area-btn">Add</button>
-          </div>
-        </div>
-      </div>
-      <div class="placeholder-note">Changes here are local for now — wire to POST/DELETE /api/branches and /api/areas so they persist and sync with the admin panel.</div>
-    </div>
+  <dialog class="restaurant-lightbox" aria-label="Photo gallery viewer">
+    <button class="lightbox-close" type="button" aria-label="Close photo viewer">×</button>
+    <button class="lightbox-arrow lightbox-prev" type="button" aria-label="Previous photo">←</button>
+    <figure class="lightbox-figure">
+      <img class="lightbox-image" src="" alt="">
+      <figcaption class="lightbox-caption"></figcaption>
+    </figure>
+    <button class="lightbox-arrow lightbox-next" type="button" aria-label="Next photo">→</button>
+    <span class="lightbox-count" aria-live="polite"></span>
+  </dialog>
 
-    <!-- REPORT FORM -->
-    <div class="card">
-      <h2>Report an Issue</h2>
-      <form id="ticket-form">
-        <div class="form-row">
-          <div class="field">
-            <label for="tech-name">Technician name</label>
-            <input type="text" id="tech-name" placeholder="Your name">
-          </div>
-          <div class="field">
-            <label for="branch">Branch</label>
-            <select id="branch"></select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="field">
-            <label for="area">Area / Equipment</label>
-            <select id="area"></select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="title">Issue title</label>
-          <input type="text" id="title" placeholder="Short summary, e.g. 'Lane 4 pinsetter jammed'">
-        </div>
-
-        <div class="field">
-          <label for="description">Description</label>
-          <textarea id="description" placeholder="What's wrong, when it started, anything already tried..."></textarea>
-          <div class="photo-row">
-            <button type="button" class="icon-btn" id="add-photo-btn" title="Add photo">Add Photo</button>
-            <span class="photo-hint" id="photo-hint">Optional</span>
-            <input type="file" id="photo-input" accept="image/*" hidden>
-          </div>
-          <img id="photo-preview" class="photo-preview" hidden>
-        </div>
-
-        <button type="submit" class="primary">Submit — Generate PDF Report</button>
-      </form>
-      <div class="placeholder-note">Submitting opens the print dialog so you can save the report as a PDF to send to the head technician.</div>
-    </div>
-
-    <!-- REPORT PREVIEW (hidden until submit; this is what prints / saves as PDF) -->
-    <div class="card report-preview" id="report-preview">
-      <h2>Issue Report</h2>
-      <div class="report-date" id="report-date"></div>
-      <div class="report-row"><span class="label">Technician</span><span id="preview-tech"></span></div>
-      <div class="report-row"><span class="label">Branch</span><span id="preview-branch"></span></div>
-      <div class="report-row"><span class="label">Area / Equipment</span><span id="preview-area"></span></div>
-      <div class="report-row"><span class="label">Issue</span><span id="preview-title"></span></div>
-      <div class="report-row"><span class="label">Description</span><span id="preview-description"></span></div>
-      <div class="report-row" id="preview-photo-row" hidden>
-        <span class="label">Photo</span>
-        <img id="preview-photo" class="photo-preview">
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // ---------- Local branch/area state (layout stage — resets on reload) ----------
-    let branches = ['Main Branch', 'Mall Branch', 'Downtown Branch'];
-    let areas = ['Bowling', 'Billiards', 'VR Zone', 'Air Hockey'];
-
-    function renderManageList(containerId, items, onRemove) {
-      const el = document.getElementById(containerId);
-      el.innerHTML = items.map((name, i) =>
-        `<div class="manage-row"><span>${escapeHtml(name)}</span><button class="remove-btn" data-index="${i}">Remove</button></div>`
-      ).join('');
-      el.querySelectorAll('.remove-btn').forEach(btn => {
-        btn.addEventListener('click', () => onRemove(parseInt(btn.dataset.index)));
-      });
-    }
-
-    function renderSelect(selectId, items) {
-      const el = document.getElementById(selectId);
-      el.innerHTML = '<option>— select —</option>' + items.map(name => `<option>${escapeHtml(name)}</option>`).join('');
-    }
-
-    function refreshAll() {
-      renderManageList('branch-list', branches, (i) => { branches.splice(i, 1); refreshAll(); });
-      renderManageList('area-list', areas, (i) => { areas.splice(i, 1); refreshAll(); });
-      renderSelect('branch', branches);
-      renderSelect('area', areas);
-    }
-
-    function escapeHtml(str) {
-      const d = document.createElement('div');
-      d.textContent = str;
-      return d.innerHTML;
-    }
-
-    document.getElementById('add-branch-btn').addEventListener('click', () => {
-      const input = document.getElementById('new-branch');
-      const val = input.value.trim();
-      if (val) { branches.push(val); input.value = ''; refreshAll(); }
-    });
-    document.getElementById('add-area-btn').addEventListener('click', () => {
-      const input = document.getElementById('new-area');
-      const val = input.value.trim();
-      if (val) { areas.push(val); input.value = ''; refreshAll(); }
-    });
-
-    refreshAll();
-
-    // ---------- Photo attach ----------
-    let photoDataUrl = null;
-
-    document.getElementById('add-photo-btn').addEventListener('click', () => {
-      document.getElementById('photo-input').click();
-    });
-
-    document.getElementById('photo-input').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        photoDataUrl = reader.result;
-        const preview = document.getElementById('photo-preview');
-        preview.src = photoDataUrl;
-        preview.hidden = false;
-        document.getElementById('photo-hint').textContent = file.name;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // ---------- Settings toggle ----------
-    document.getElementById('settings-btn').addEventListener('click', () => {
-      document.getElementById('settings-panel').classList.toggle('open');
-    });
-
-    // ---------- Build and download an actual PDF file (no print dialog, no printer involved) ----------
-    let lastReport = null; // keeps the last submitted data so the toolbar buttons can re-download it
-
-    function buildAndDownloadPdf(reportData) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const marginX = 48;
-      let y = 56;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text('Technical Issue Report', marginX, y);
-      y += 20;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(120);
-      doc.text(reportData.date, marginX, y);
-      doc.setTextColor(0);
-      y += 28;
-
-      function row(label, value) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.setTextColor(110);
-        doc.text(label.toUpperCase(), marginX, y);
-        y += 14;
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        const lines = doc.splitTextToSize(value || '—', 500);
-        doc.text(lines, marginX, y);
-        y += (lines.length * 14) + 14;
-      }
-
-      row('Technician', reportData.tech);
-      row('Branch', reportData.branch);
-      row('Area / Equipment', reportData.area);
-      row('Issue', reportData.title);
-      row('Description', reportData.description);
-
-      if (reportData.photoDataUrl) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.setTextColor(110);
-        doc.text('PHOTO', marginX, y);
-        y += 14;
-        try {
-          const imgWidth = 300;
-          const imgHeight = 200;
-          // jsPDF needs the image format ('PNG' or 'JPEG') pulled from the data URL's mime type.
-          const mimeMatch = reportData.photoDataUrl.match(/^data:image\/(png|jpeg|jpg);/i);
-          const format = mimeMatch ? mimeMatch[1].toUpperCase().replace('JPG', 'JPEG') : 'JPEG';
-          doc.addImage(reportData.photoDataUrl, format, marginX, y, imgWidth, imgHeight, undefined, 'FAST');
-          y += imgHeight + 14;
-        } catch (err) {
-          console.error('PDF image embed failed:', err);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.text('(photo could not be embedded)', marginX, y);
-          y += 20;
-        }
-      }
-
-      const safeTitle = (reportData.title || 'issue-report').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-      doc.save(`${safeTitle}.pdf`);
-    }
-
-    // ---------- Submit: build the PDF immediately and download it ----------
-    document.getElementById('ticket-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-
-      lastReport = {
-        date: new Date().toLocaleString(),
-        tech: document.getElementById('tech-name').value,
-        branch: document.getElementById('branch').value,
-        area: document.getElementById('area').value,
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        photoDataUrl: photoDataUrl
-      };
-
-      buildAndDownloadPdf(lastReport);
-    });
-
-    // ---------- Toolbar buttons ----------
-    // Print icon: actual physical print of the last report (opens the normal print dialog).
-    document.getElementById('print-btn').addEventListener('click', () => {
-      if (!lastReport) { alert('Submit a report first.'); return; }
-      document.getElementById('preview-tech').textContent = lastReport.tech || '—';
-      document.getElementById('preview-branch').textContent = lastReport.branch || '—';
-      document.getElementById('preview-area').textContent = lastReport.area || '—';
-      document.getElementById('preview-title').textContent = lastReport.title || '—';
-      document.getElementById('preview-description').textContent = lastReport.description || '—';
-      document.getElementById('report-date').textContent = lastReport.date;
-      document.getElementById('report-preview').classList.add('visible');
-      window.print();
-    });
-
-    // PDF icon: re-download the last report as a PDF file.
-    document.getElementById('pdf-btn').addEventListener('click', () => {
-      if (!lastReport) { alert('Submit a report first.'); return; }
-      buildAndDownloadPdf(lastReport);
-    });
-  </script>
-
-  <script>
-    // Anti-inspection deterrent: blocks standard inspection shortcuts.
-    // Note: no browser script can make a page truly "uninspectable".
-    (() => {
-      const block = (event) => {
-        const key = event.key ? event.key.toLowerCase() : '';
-        const ctrl = event.ctrlKey || event.metaKey;
-        const isInspectShortcut =
-          event.key === 'F12' ||
-          (ctrl && (key === 'i' || key === 'u' || key === 's' || key === 'c')) ||
-          (event.shiftKey && ctrl && key === 'i');
-
-        if (isInspectShortcut) {
-          event.preventDefault();
-          event.stopPropagation();
-          return false;
-        }
-      };
-
-      document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
-      document.addEventListener('keydown', block, { passive: false });
-      document.addEventListener('dragstart', (e) => e.preventDefault());
-      document.addEventListener('selectstart', (e) => e.preventDefault());
-
-      const css = document.createElement('style');
-      css.textContent = '* { user-select: none !important; }';
-      document.head.appendChild(css);
-    })();
-  </script>
+  <script src="script.js" defer></script>
 </body>
 </html>
